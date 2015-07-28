@@ -118,15 +118,16 @@ def updateminimap():
          if src.buffer != mainwindow.buffer:
              position_in_minimap = src.cursor[0]
 
-             ratio =  float(len(minimap.buffer)) / float(len(mainwindow.buffer))
-
-             new_position = int(float(position_in_minimap) / ratio)
+             new_position = int(float(position_in_minimap) * 4) - 3
              if new_position > len(mainwindow.buffer):
                  new_position = len(mainwindow.buffer)
 
              mainwindow.cursor = (new_position, 0) # move to top left
+             mini_cursor = minimap.cursor
              vim.current.window = mainwindow
              updateminimap()
+             vim.current.window = minimap
+             minimap.cursor = mini_cursor
 
     if minimap and src.buffer != minimap.buffer:
 
@@ -145,7 +146,7 @@ def updateminimap():
             for y, l in enumerate(lengths):
                 indent = int(indents[y] * HORIZ_SCALE)
                 for x in range(2 * min(int(l * HORIZ_SCALE), WIDTH)):
-                    if(x>=indent):
+                    if(x >= indent):
                         c.set(x, y)
 
             # pad with spaces to ensure uniform block highlighting
@@ -167,8 +168,8 @@ def updateminimap():
 
             minimap.buffer[:] = draw(lengths,indents)
             # Highlight the current visible zone
-            top = topline / 4
-            bottom = bottomline / 4 + 1
+            top = (topline - 1) / 4
+            bottom = (bottomline + 3) / 4 + 1
             vim.command("match " + highlight_group + " /\%>0v\%<{}v\%>{}l\%<{}l./".format(WIDTH + 1, top, bottom))
 
             # center the highlighted zone
@@ -179,6 +180,11 @@ def updateminimap():
             if (top + (bottom - top) / 2) > height / 2:
                 jump = min(top + (bottom - top) / 2 + height / 2, len(minimap.buffer))
                 vim.command("normal! %dgg" % jump)
+            # last, move the cursor to the relative position of src
+            new_position = int(float(cursor[0] + 3) / 4.0)
+            if new_position > len(minimap.buffer):
+                new_position = len(minimap.buffer)
+            minimap.cursor = (new_position, 0)
 
             # prevent any further modification
             vim.command(":setlocal nomodifiable")
